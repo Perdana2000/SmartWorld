@@ -70,7 +70,7 @@ def read_moisture():
     return int(percent), raw
 
 # ---------------------------------------------------------
-# MOCK FUNCTIES (ALLEEN LICHT & SERVO)
+# MOCK FUNCTIES (ALLEEN LICHT & SERVO) Welke versie van de servo bestanden werkt er nu?
 # ---------------------------------------------------------
 DARK = 2000
 BRIGHT = 30000
