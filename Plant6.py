@@ -6,7 +6,7 @@ import board
 import busio
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
-from scripts.servo_plantwacht import open_kraan, dicht_kraan, status as servo_status
+from test-components.servo_plantwacht.py import open_kraan, dicht_kraan, status as servo_status
 
 # ---------------------------------------------------------
 # CONFIGURATIE & PINS
@@ -21,6 +21,54 @@ GPIO.setup(ECHO, GPIO.IN)
 WET = 12000
 DRY = 26000
 
+# ---------------------------------------------------------
+import requests  # voor de cloud verbinding
+# ---------------------------------------------------------
+# --- CONFIGURATIE ---
+# Gebruik de URL uit je logs!
+RENDER_URL = "https://smartworld-nbyf.onrender.com/log_data"
+
+
+def stuur_data_naar_cloud(licht_waarde, vocht_waarde, is_gegeven):
+    """Verstuurt sensorwaarden naar de Render API."""
+    params = {
+        "licht": licht_waarde,
+        "bodemvocht": vocht_waarde,
+        "water_gegeven": is_gegeven
+    }
+    try:
+        response = requests.post(RENDER_URL, params=params, timeout=5)
+        if response.status_code == 200:
+            print("Cloud update: Succes!")
+        else:
+            print(f"Cloud update mislukt: {response.status_code}")
+    except Exception as e:
+        print(f"Netwerkfout: {e}")
+
+
+# --- BIJ DE VOCHTMETING ---
+def show_moisture_screen():
+    clear_screen()
+    p, r = get_moisture_data()
+    # Stuur de meting naar de cloud
+    stuur_data_naar_cloud(licht_waarde=r, vocht_waarde=p, is_gegeven=False)
+
+    tk.Label(root, text="Vochtmeting", font=("Arial", 22)).pack(pady=20)
+    tk.Label(root, text=f"{p}%", font=("Arial", 40), fg="blue").pack(pady=10)
+    tk.Button(root, text="← Terug", command=show_start_screen).pack(pady=20)
+
+
+# --- BIJ HET WATER GEVEN ---
+# In je water_task functie binnen show_water_screen:
+def water_task(action):
+    if action == "open":
+        msg = open_kraan()
+        # Log dat er water is gegeven
+        p, r = get_moisture_data()
+        stuur_data_naar_cloud(licht_waarde=r, vocht_waarde=p, is_gegeven=True)
+    else:
+        msg = dicht_kraan()
+    status_label.config(text=msg)
 
 # ---------------------------------------------------------
 # HARDWARE FUNCTIES
